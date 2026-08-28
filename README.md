@@ -1,6 +1,6 @@
 # Moss
 
-A HTTP/1.1 server written in **C++**, built to understand networking fundamentals, sockets, request parsing, concurrency, and the HTTP protocol by implementing them from scratch.
+A HTTP/1.1 server written in **Rust**, built to understand networking fundamentals, sockets, request parsing, concurrency, and the HTTP protocol by implementing them from scratch.
 
 ## Features
 
