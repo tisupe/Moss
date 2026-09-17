@@ -24,3 +24,11 @@ A HTTP/1.1 server written in **Rust**, built to understand networking fundamenta
 - Persistent (Keep-Alive) connections
 - Concurrent persistent connections
 - Proper connection closure
+
+## Try it
+
+```sh
+git clone https://github.com/tisupe/Moss
+cd Moss
+cargo build && run
+```

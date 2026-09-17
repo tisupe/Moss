@@ -13,7 +13,6 @@ fn main() {
                     loop {
                         let mut buffer = [0; 1024];
                         let bytes_read = stream.read(&mut buffer).unwrap();
-
                         if bytes_read == 0 {
                             break;
                         } else {
