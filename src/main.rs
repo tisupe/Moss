@@ -1,7 +1,9 @@
+use std::thread;
 use std::io::Read;
 use std::io::Write;
 use std::net::TcpListener;
-use std::thread;
+use flate2::Compression;
+use flate2::write::GzEncoder;
 
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
@@ -26,14 +28,33 @@ fn main() {
                             println!("\r\n[ parts ]:\r\n{} {} {}", parts[0], parts[1], parts[2]);
                             println!("\r\n[ headers, body ]:\r\n{} {}", headers, body);
 
+                            let mut gzip_support = false;
+                            for line in read_buffer.lines() {
+                                if line.starts_with("Accept-Encoding: ") {
+                                    let value = line.strip_prefix("Accept-Encoding: ").unwrap();
+                                    for part in value.split(',') {
+                                        if part.trim() == "gzip" {
+                                            gzip_support = true;
+                                        } // closes if part.trim
+                                    } // closes for part
+                                    println!("\r\n[ gzip_support ]:\r\n{}", gzip_support);
+                                } // closes "Accept-Encoding: " check
+                            } // closes for
+
                             if parts[1] == "/" {
                                 stream
                                     .write_all("HTTP/1.1 200 OK\r\n\r\n".as_bytes())
                                     .unwrap();
                             } else if parts[1].starts_with("/echo/") {
                                 let echo_str = parts[1].strip_prefix("/echo/").unwrap();
+                                let encoding_header = if gzip_support {
+                                    "Content-Encoding: gzip\r\n"
+                                } else {
+                                    ""
+                                };
                                 let response = format!(
-                                    "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",
+                                    "HTTP/1.1 200 OK\r\n{}Content-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",
+                                    encoding_header,
                                     echo_str.len(),
                                     echo_str
                                 );
