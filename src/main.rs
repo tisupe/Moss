@@ -1,9 +1,9 @@
-use std::thread;
+use flate2::Compression;
+use flate2::write::GzEncoder;
 use std::io::Read;
 use std::io::Write;
 use std::net::TcpListener;
-use flate2::Compression;
-use flate2::write::GzEncoder;
+use std::thread;
 
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
@@ -46,20 +46,39 @@ fn main() {
                                     .write_all("HTTP/1.1 200 OK\r\n\r\n".as_bytes())
                                     .unwrap();
                             } else if parts[1].starts_with("/echo/") {
-                                let echo_str = parts[1].strip_prefix("/echo/").unwrap();
                                 let encoding_header = if gzip_support {
                                     "Content-Encoding: gzip\r\n"
                                 } else {
                                     ""
                                 };
-                                let response = format!(
-                                    "HTTP/1.1 200 OK\r\n{}Content-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",
-                                    encoding_header,
-                                    echo_str.len(),
-                                    echo_str
-                                );
+                                let echo_str = parts[1].strip_prefix("/echo/").unwrap();
+
+                                if gzip_support {
+                                    let mut encoder =
+                                        GzEncoder::new(Vec::new(), Compression::default());
+                                    encoder.write_all(echo_str.as_bytes()).unwrap();
+                                    let compressed_bytes = encoder.finish().unwrap();
+
+                                    let response = format!(
+                                        "HTTP/1.1 200 OK\r\n{}Content-Type: text/plain\r\nContent-Length: {}\r\n\r\n",
+                                        encoding_header,
+                                        compressed_bytes.len(),
+                                    );
+
+                                    println!("\r\n[ compressed_bytes ]:\r\n{:?}", compressed_bytes);
+                                    stream.write_all(response.as_bytes()).unwrap();
+                                    stream.write_all(&compressed_bytes).unwrap();
+                                } else {
+                                    let response = format!(
+                                        "HTTP/1.1 200 OK\r\n{}Content-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",
+                                        encoding_header,
+                                        echo_str.len(),
+                                        echo_str
+                                    );
+                                    stream.write_all(response.as_bytes()).unwrap();
+                                }
+
                                 println!("\r\n[ echo ]:\r\n{}", echo_str);
-                                stream.write_all(response.as_bytes()).unwrap();
                             } else if parts[1] == "/user-agent" {
                                 let mut user_agent_str = String::from("");
                                 for line in read_buffer.lines() {
